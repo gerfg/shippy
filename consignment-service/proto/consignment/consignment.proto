@@ -10,6 +10,8 @@ Métodos que serão expostos para outros servicos
 */
 service ShippingService {
     rpc CreateConsignment (Consignment) returns (Response) {}
+
+    rpc GetConsignment(GetRequest) returns (Response) {}
 }
 
 /*
@@ -32,6 +34,8 @@ message Container {
     string origin = 3;
     string user_id = 4;
 }
+
+message GetRequest {}
 
 message Response {
     bool created = 1;
