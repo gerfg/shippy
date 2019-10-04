@@ -40,4 +40,6 @@ message GetRequest {}
 message Response {
     bool created = 1;
     Consignment consignment = 2;
+
+    repeated Consignment consignments = 3;
 }
