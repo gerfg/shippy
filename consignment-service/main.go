@@ -6,10 +6,7 @@ import (
 	"sync"
 
 	"github.com/gerfg/shippy/consignment-service/proto/consignment"
-)
-
-const (
-	port = ":50051"
+	"github.com/micro/go-micro"
 )
 
 // simulated DB
@@ -46,25 +43,23 @@ type service struct {
 	repo repository
 }
 
-func (s *service) CreateConsignment(ctx context.Context, req *consignment.Consignment) (*consignment.Response, error) {
+func (s *service) CreateConsignment(ctx context.Context, req *consignment.Consignment, res *consignment.Response) error {
 	// Armazena nosso consignment
 	cons, err := s.repo.Create(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Retorna a Reponse message criada no nosso protobuf definido
-	return &consignment.Response{Created: true, Consignment: cons}, nil
+	res.Created = true
+	res.Consignment = cons
+	return nil
 }
 
-func (s *service) GetConsignments(ctx context.Context, req *consignment.GetRequest) (*consignment.Response, error) {
+func (s *service) GetConsignments(ctx context.Context, req *consignment.GetRequest, res *consignment.Response) error {
 	consignments := s.repo.GetAll()
-	return &consignment.Response{Consignments: consignments}, nil
-}
-
-func (s *service) GetConsignment(ctx context.Context, req *consignment.GetRequest) (*consignment.Response, error) {
-	cons := s.repo.GetAll()
-	return &consignment.Response{Consignment: cons[0]}, nil
+	res.Consignments = consignments
+	return nil
 }
 
 func main() {
@@ -78,7 +73,7 @@ func main() {
 
 	// Registrar nosso servico com o gRPC server
 	// Isso vai amarrar nossa implementacão com a interface auto-gerada do nosso protobuf
-	consignment.RegisterShippingServiceServer(srv, &service{repo})
+	consignment.RegisterShippingServiceHandler(srv.Server(), &service{repo})
 
 	if err := srv.Run(); err != nil {
 		fmt.Println(err)
