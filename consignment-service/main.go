@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/gerfg/shippy/consignment-service/proto/consignment"
+	vesselProto "github.com/gerfg/shippy/vessel-service/proto/vessel"
 	"github.com/micro/go-micro"
 )
 
@@ -40,10 +42,23 @@ func (repo *Repository) GetAll() []*consignment.Consignment {
 }
 
 type service struct {
-	repo repository
+	repo         repository
+	vesselClient vesselProto.VesselServiceClient
 }
 
 func (s *service) CreateConsignment(ctx context.Context, req *consignment.Consignment, res *consignment.Response) error {
+
+	vesselResponse, err := s.vesselClient.FindAvaliable(context.Background(), &vesselProto.Specification{
+		MaxWeight: req.Weight,
+		Capacity:  int32(len(req.Containers)),
+	})
+	log.Printf("Found Vessel: %s \n", vesselResponse.Vessel.Name)
+	if err != nil {
+		return err
+	}
+
+	res.VesselId = vesselResponse.Id
+
 	// Armazena nosso consignment
 	cons, err := s.repo.Create(req)
 	if err != nil {
@@ -71,9 +86,11 @@ func main() {
 
 	srv.Init()
 
+	vesselClient := vesselProto.NewVesselServiceClient("shippy.service.vessel", srv.Client())
+
 	// Registrar nosso servico com o gRPC server
 	// Isso vai amarrar nossa implementacão com a interface auto-gerada do nosso protobuf
-	consignment.RegisterShippingServiceHandler(srv.Server(), &service{repo})
+	consignment.RegisterShippingServiceHandler(srv.Server(), &service{repo, vesselClient})
 
 	if err := srv.Run(); err != nil {
 		fmt.Println(err)

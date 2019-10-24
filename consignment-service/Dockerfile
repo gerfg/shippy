@@ -7,29 +7,32 @@
 # ADD consignment-service /app/consignment-service
 
 # CMD ["./consignment-service"]
+
+
+
 FROM golang:alpine as builder
 
-RUN apk --no-cache add git
+# RUN apk --no-cache add git
 
 # Set our workdir to our current service in the gopath
-WORKDIR /app/shippy-service-consignment
+WORKDIR /app/consignment-service
 
 # Copy the current code into our workdir
 COPY . .
 
-# RUN go mod download
+RUN go mod download
 
 # Build the binary, with a few flags which will allow
 # us to run this binary in Alpine. 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o shippy-service-consignment
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o consignment-service
 
 # Here we're using a second FROM statement, which is strange,
 # but this tells Docker to start a new build process with this
 # image.
-FROM alpine:latest
+FROM debian:latest
 
 # Security related package, good to have.
-RUN apk --no-cache add ca-certificates
+# RUN apk --no-cache add ca-certificates
 
 # Same as before, create a directory for our app.
 RUN mkdir /app
@@ -39,9 +42,9 @@ WORKDIR /app
 # we pull the binary from the container named `builder`, within
 # this build context. This reaches into our previous image, finds
 # the binary we built, and pulls it into this container. Amazing!
-COPY --from=builder /app/shippy-service-consignment/shippy-service-consignment .
+COPY --from=builder /app/consignment-service/consignment-service .
 
 # Run the binary as per usual! This time with a binary build in a
 # separate container, with all of the correct dependencies and
 # run time libraries.
-CMD ["./shippy-service-consignment"]
+CMD ["./consignment-service"]
